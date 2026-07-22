@@ -377,7 +377,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         # SCRIPT_NAME (the application_root). `Slice.url` itself stays router-
         # relative so frontend callers can apply ensureAppRoot exactly once.
         href = url_for("ExploreView.root", slice_id=self.id)
-        return Markup(f'<a href="{href}">{name}</a>')
+        # `chart`/`slice_name` is editable by a Gamma/Alpha owner (SECURITY.md
+        # "Write objects" row) and is escape()'d above; `href` is url_for on
+        # the integer slice_id, not user text. No unescaped markup reaches the
+        # FAB list-view sink, so the SECURITY.md XSS row is not reachable.
+        return Markup(f'<a href="{href}">{name}</a>')  # noqa: S704
 
     @property
     def icons(self) -> str:

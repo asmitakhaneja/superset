@@ -575,7 +575,13 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     # nh3 preserves supported link attributes and enforces a safe rel value.
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
-        safe = Markup(safe)
+        # `safe` has passed through nh3.clean above, which strips scripts and
+        # unsafe attributes. The markdown source is editable by a Gamma/Alpha
+        # owner (SECURITY.md "Write objects" row) and reaches an HTML sink
+        # (React dangerouslySetInnerHTML in Chart.tsx and FAB views), but
+        # sanitization removes any live payload, so the SECURITY.md XSS row is
+        # not reachable and Markup-wrapping the sanitized output is safe.
+        safe = Markup(safe)  # noqa: S704
     return safe
 
 

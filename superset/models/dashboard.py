@@ -285,7 +285,11 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         href = escape(
             url_for("Superset.dashboard", dashboard_id_or_slug=self.slug or self.id)
         )
-        return Markup(f'<a href="{href}">{title}</a>')
+        # `dashboard_title` and `slug` are editable by a Gamma/Alpha owner
+        # (SECURITY.md "Write objects" row); both `title` and `href` are
+        # escape()'d above, so no unescaped user markup reaches the FAB
+        # list-view sink and the SECURITY.md XSS row is not reachable.
+        return Markup(f'<a href="{href}">{title}</a>')  # noqa: S704
 
     @property
     def digest(self) -> str | None:

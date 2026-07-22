@@ -42,6 +42,31 @@ from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 
 
+def test_link_escapes_name_and_url() -> None:
+    """SqlaTable.link must HTML-escape the owner-controlled name and url.
+
+    `table_name`/`schema` (feeding `name`) and `default_endpoint` (feeding
+    `explore_url`) are editable by an Alpha/Admin dataset owner (SECURITY.md
+    "Write objects" row) and `link` is rendered as raw HTML in the FAB list
+    view, so both must be escaped rather than interpolated live (SECURITY.md
+    XSS row).
+    """
+    table = SqlaTable(table_name='"><img src=x onerror=alert(1)>')
+    table.schema = None
+    table.default_endpoint = '"><script>alert(2)</script>'
+
+    link = str(table.link)
+
+    # The injected markup from both the name and the url has its angle
+    # brackets escaped, so neither survives as a live element.
+    assert "<img" not in link
+    assert "<script>" not in link
+    # Escaped forms are present, wrapped in the legitimate anchor.
+    assert link.startswith("<a ")
+    assert "&lt;img" in link
+    assert "&lt;script&gt;" in link
+
+
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:
     """
     Test that the `query` method bubbles exceptions correctly.
