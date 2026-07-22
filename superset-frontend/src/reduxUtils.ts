@@ -182,24 +182,24 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
   return true;
 }
 
-export function areObjectsEqual(
-  obj1: any,
-  obj2: any,
+export function areObjectsEqual<T>(
+  obj1: T,
+  obj2: T,
   opts: {
     ignoreUndefined?: boolean;
     ignoreNull?: boolean;
     ignoreFields?: string[];
   } = { ignoreUndefined: false, ignoreNull: false, ignoreFields: [] },
 ) {
-  let comp1 = obj1;
-  let comp2 = obj2;
+  let comp1: unknown = obj1;
+  let comp2: unknown = obj2;
   if (opts.ignoreUndefined) {
-    comp1 = omitBy(comp1, i => i === undefined);
-    comp2 = omitBy(comp2, i => i === undefined);
+    comp1 = omitBy(comp1 as Record<string, unknown>, i => i === undefined);
+    comp2 = omitBy(comp2 as Record<string, unknown>, i => i === undefined);
   }
   if (opts.ignoreNull) {
-    comp1 = omitBy(comp1, i => i === null);
-    comp2 = omitBy(comp2, i => i === null);
+    comp1 = omitBy(comp1 as Record<string, unknown>, i => i === null);
+    comp2 = omitBy(comp2 as Record<string, unknown>, i => i === null);
   }
   if (opts.ignoreFields?.length) {
     const ignoreFields = ensureIsArray(opts.ignoreFields);
