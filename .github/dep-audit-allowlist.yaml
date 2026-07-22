@@ -1,0 +1,337 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# Dependency-audit allowlist for the `dep-audit` CI workflow.
+#
+# Each entry suppresses a single advisory reported by `pip-audit` or
+# `npm audit`. An advisory may only be suppressed if it fits one of the
+# eligibility rows documented in SECURITY.md ("Dependency-audit allowlist"):
+#
+#   dev-tooling            build/test/CI tooling not shipped in the runtime image
+#   operator-boundary      operator-selected connector/component (deployment decision)
+#   transitive-dependency  transitive dep Superset does not ship directly
+#   tracked-upgrade        in-scope direct dep, accepted until `review-by` while
+#                          the upgrade is batched (time-boxed risk acceptance)
+#
+# Required fields per entry: id, package, reason, security-md-scope-row,
+# owner, review-by (ISO YYYY-MM-DD; a stale date fails CI). `ecosystem`
+# (pip|npm) is optional but recommended so an id only matches its own tool.
+#
+# Removing an entry re-surfaces the advisory as a CI failure. Adding one is a
+# normal, reviewable PR change. The schema is enforced by
+# scripts/dependency_audit.py and tests/security/test_dep_audit_allowlist.py.
+
+version: 1
+entries:
+  # --- npm (frontend) ---------------------------------------------------------
+  - id: GHSA-55h3-fm53-wq99
+    package: eslint-plugin-i18n-strings
+    ecosystem: npm
+    reason: >-
+      Flagged "malware" advisory against a dev-only ESLint plugin; tracked as a
+      package rename/false-positive. Lint tooling is never shipped to users.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+  - id: GHSA-23hp-3jrh-7fpw
+    package: tar
+    ecosystem: npm
+    reason: >-
+      node-tar decompression DoS reachable only via the lerna monorepo tooling;
+      build/dev-time only, not part of any shipped bundle.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+  # --- pip (backend) ----------------------------------------------------------
+  - id: PYSEC-2026-2151
+    package: flask
+    ecosystem: pip
+    reason: >-
+      Flask session "Vary: Cookie" cache-header advisory; low impact and only affects response caching. Batched into the next base requirements upgrade.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: CVE-2026-23949
+    package: jaraco-context
+    ecosystem: pip
+    reason: >-
+      Transitive dependency of packaging/dev tooling; not shipped directly by Superset. Track the upstream fix.
+    security-md-scope-row: transitive-dependency
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: CVE-2026-52869
+    package: mcp
+    ecosystem: pip
+    reason: >-
+      Model Context Protocol SDK used by the extensions/developer tooling; not part of the runtime product surface.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: CVE-2026-52870
+    package: mcp
+    ecosystem: pip
+    reason: >-
+      Model Context Protocol SDK used by the extensions/developer tooling; not part of the runtime product surface.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: CVE-2026-59950
+    package: mcp
+    ecosystem: pip
+    reason: >-
+      Model Context Protocol SDK used by the extensions/developer tooling; not part of the runtime product surface.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-2858
+    package: paramiko
+    ecosystem: pip
+    reason: >-
+      paramiko is only exercised by operator-selected SSH-based database connectors; whether it is reachable is a deployment decision (trust boundary #2).
+    security-md-scope-row: operator-boundary
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: CVE-2026-54058
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: CVE-2026-59197
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: CVE-2026-59198
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: CVE-2026-59200
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: CVE-2026-59204
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-2253
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-2254
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-2255
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-2256
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-2257
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-3451
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-3452
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-3453
+    package: pillow
+    ecosystem: pip
+    reason: >-
+      Pillow image-decoding advisories; image handling (thumbnails, report exports) is only reachable by already-authorized principals. Upgrade batched into the next base requirements bump.
+    security-md-scope-row: tracked-upgrade
+    owner: "@apache/superset-committers"
+    review-by: 2026-10-31
+
+  - id: PYSEC-2026-1795
+    package: pip
+    ecosystem: pip
+    reason: >-
+      Package installer used at build/CI time only; not shipped in the runtime image.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-1796
+    package: pip
+    ecosystem: pip
+    reason: >-
+      Package installer used at build/CI time only; not shipped in the runtime image.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-196
+    package: pip
+    ecosystem: pip
+    reason: >-
+      Package installer used at build/CI time only; not shipped in the runtime image.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-2875
+    package: pip
+    ecosystem: pip
+    reason: >-
+      Package installer used at build/CI time only; not shipped in the runtime image.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-2876
+    package: pip
+    ecosystem: pip
+    reason: >-
+      Package installer used at build/CI time only; not shipped in the runtime image.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: CVE-2026-59885
+    package: pyasn1
+    ecosystem: pip
+    reason: >-
+      Transitive dependency pulled in by the crypto/ASN.1 stack; not shipped directly by Superset. Track the upstream fix.
+    security-md-scope-row: transitive-dependency
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: CVE-2026-59886
+    package: pyasn1
+    ecosystem: pip
+    reason: >-
+      Transitive dependency pulled in by the crypto/ASN.1 stack; not shipped directly by Superset. Track the upstream fix.
+    security-md-scope-row: transitive-dependency
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-1845
+    package: pytest
+    ecosystem: pip
+    reason: >-
+      Test framework; development and CI only, never installed in production images.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-3036
+    package: python-multipart
+    ecosystem: pip
+    reason: >-
+      Transitive dependency of dev/test HTTP tooling (mcp/fastapi); not part of the runtime product surface.
+    security-md-scope-row: transitive-dependency
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-3037
+    package: python-multipart
+    ecosystem: pip
+    reason: >-
+      Transitive dependency of dev/test HTTP tooling (mcp/fastapi); not part of the runtime product surface.
+    security-md-scope-row: transitive-dependency
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-3040
+    package: python-multipart
+    ecosystem: pip
+    reason: >-
+      Transitive dependency of dev/test HTTP tooling (mcp/fastapi); not part of the runtime product surface.
+    security-md-scope-row: transitive-dependency
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
+
+  - id: PYSEC-2026-3447
+    package: setuptools
+    ecosystem: pip
+    reason: >-
+      Build-time packaging tooling; not part of the runtime product surface shipped to users.
+    security-md-scope-row: dev-tooling
+    owner: "@apache/superset-committers"
+    review-by: 2027-04-30
