@@ -74,6 +74,24 @@ def test_uuid_namespace_from_md5_warns(caplog) -> None:
     assert any("deprecated" in record.message.lower() for record in caplog.records)
 
 
+def test_uuid_namespace_from_md5_stable_digest() -> None:
+    """
+    The deprecated MD5 namespace derivation must stay byte-identical so that
+    UUIDs persisted before ``usedforsecurity=False`` was added remain valid.
+    """
+    import hashlib
+
+    from superset.key_value.utils import _uuid_namespace_from_md5
+
+    seed = "test_seed"
+    assert _uuid_namespace_from_md5(seed) == UUID(
+        "d81a8c4d-6522-9513-525d-6a5cef1c7c9d"
+    )
+    assert _uuid_namespace_from_md5(seed) == UUID(
+        hashlib.md5(seed.encode("utf-8"), usedforsecurity=False).hexdigest()
+    )
+
+
 @pytest.mark.parametrize(
     "key,expected_filter",
     [

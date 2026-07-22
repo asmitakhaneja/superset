@@ -469,3 +469,27 @@ def test_send_mime_email_server_auth_disabled_skips_context(
 
     assert not create_default_context.called
     smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)
+
+
+def test_config_fingerprint_stable_digest() -> None:
+    """
+    The config fingerprint must remain byte-identical to the legacy
+    ``hashlib.md5(source).hexdigest()[:12]`` output so operators can keep
+    matching it against ``md5 <path>`` on the host.
+    """
+    from superset.config import _config_fingerprint
+
+    source = b"SECRET_KEY = 'example'\n"
+    assert _config_fingerprint(source) == "024d376a5a87"
+    assert _config_fingerprint(None) == "unreadable"
+
+
+def test_config_fingerprint_matches_usedforsecurity_false() -> None:
+    """The fingerprint equals the non-security MD5 digest of the source."""
+    import hashlib
+
+    from superset.config import _config_fingerprint
+
+    source = b"arbitrary config bytes"
+    expected = hashlib.md5(source, usedforsecurity=False).hexdigest()[:12]
+    assert _config_fingerprint(source) == expected

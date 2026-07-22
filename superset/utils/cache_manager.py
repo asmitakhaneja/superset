@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import functools
 import hashlib
 import logging
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
@@ -39,7 +40,7 @@ CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
 # Hash function lookup table matching superset.utils.hashing
 _HASH_METHODS: dict[str, Callable[..., Any]] = {
     "sha256": hashlib.sha256,
-    "md5": hashlib.md5,
+    "md5": functools.partial(hashlib.md5, usedforsecurity=False),
 }
 
 
