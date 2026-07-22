@@ -1349,6 +1349,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # input with `SELECT ...`; other callers pass bare
                 # expressions. Detect and don't double-wrap, otherwise
                 # `SELECT SELECT ...` fails the sqlglot parse.
+                # Safe SQL construction (SECURITY.md "Gamma/Alpha + sql_lab ->
+                # Execute SQL"): `expression` is a user adhoc column/metric that
+                # has already passed validate_adhoc_subquery + sanitize_clause.
+                # The synthetic `SELECT` prefix only feeds the SQLScript parser
+                # used to enforce the DISALLOWED_SQL_* denylist below; this is a
+                # validation sink, not the query-execution path.
                 sql_to_check = (
                     expression
                     if expression.strip().upper().startswith("SELECT")
@@ -1393,6 +1399,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         be properly parsed and validated.
         """
         if expression:
+            # Safe SQL construction (SECURITY.md "Gamma/Alpha + sql_lab -> Execute
+            # SQL"): the dummy SELECT prefix only lets `_process_sql_expression`
+            # parse and validate the adhoc column expression (subquery/denylist
+            # gating). The prefix is stripped back off below, and validation runs
+            # before the value ever reaches an engine.
             expression = f"SELECT {expression}"
 
         if processed := self._process_sql_expression(
@@ -1427,6 +1438,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         be properly parsed and validated.
         """
         if expression:
+            # Safe SQL construction (SECURITY.md "Gamma/Alpha + sql_lab -> Execute
+            # SQL"): the `SELECT 1 ORDER BY ...` wrapper only lets
+            # `_process_sql_expression` parse and validate the adhoc ORDER BY. The
+            # wrapper is stripped back off below, and the same adhoc-expression
+            # validation runs before the value ever reaches an engine.
             expression = f"SELECT 1 ORDER BY {expression}"
 
         if processed := self._process_sql_expression(
