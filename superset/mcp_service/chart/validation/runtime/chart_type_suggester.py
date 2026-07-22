@@ -21,7 +21,7 @@ Chart type suggestions based on data characteristics and user intent.
 
 import logging
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, cast, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
@@ -156,7 +156,8 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_analysis: Dict[str, Any], y_analysis: Dict[str, Any]
     ) -> Tuple[List[str], List[str]]:
         """Check for chart type specific issues."""
-        assert config.x is not None  # caller guards for None
+        # ``config.x`` is guaranteed non-None by ``_analyze_xy_chart`` before this
+        # method is reached; it is only passed through to the helpers below.
         issues = []
         suggestions = []
 
@@ -205,13 +206,14 @@ class ChartTypeSuggester:
         x_is_id: bool,
     ) -> Tuple[List[str], List[str]]:
         """Check line chart specific issues."""
-        assert config.x is not None
+        # ``config.x`` is guaranteed non-None by ``_analyze_xy_chart``.
+        x = cast(ColumnRef, config.x)
         issues = []
         suggestions = []
 
         if not x_is_temporal and x_is_categorical:
             issues.append(
-                f"Line chart with categorical X-axis '{config.x.name}' may not "
+                f"Line chart with categorical X-axis '{x.name}' may not "
                 f"show meaningful trends"
             )
             suggestions.extend(
@@ -222,7 +224,7 @@ class ChartTypeSuggester:
             )
         elif x_is_id:
             issues.append(
-                f"Line chart with ID field '{config.x.name}' on X-axis will not "
+                f"Line chart with ID field '{x.name}' on X-axis will not "
                 f"show meaningful patterns"
             )
             suggestions.extend(
@@ -239,13 +241,14 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_is_categorical: bool, num_metrics: int
     ) -> Tuple[List[str], List[str]]:
         """Check scatter chart specific issues."""
-        assert config.x is not None
+        # ``config.x`` is guaranteed non-None by ``_analyze_xy_chart``.
+        x = cast(ColumnRef, config.x)
         issues = []
         suggestions = []
 
         if x_is_categorical:
             issues.append(
-                f"Scatter plot with categorical X-axis '{config.x.name}' may not "
+                f"Scatter plot with categorical X-axis '{x.name}' may not "
                 f"effectively show correlations"
             )
             suggestions.extend(
@@ -270,14 +273,14 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_is_temporal: bool
     ) -> Tuple[List[str], List[str]]:
         """Check area chart specific issues."""
-        assert config.x is not None
+        # ``config.x`` is guaranteed non-None by ``_analyze_xy_chart``.
+        x = cast(ColumnRef, config.x)
         issues = []
         suggestions = []
 
         if not x_is_temporal:
             issues.append(
-                f"Area chart with non-temporal X-axis '{config.x.name}' may be "
-                f"misleading"
+                f"Area chart with non-temporal X-axis '{x.name}' may be misleading"
             )
             suggestions.extend(
                 [
@@ -310,13 +313,14 @@ class ChartTypeSuggester:
         config: XYChartConfig, x_is_id: bool
     ) -> Tuple[List[str], List[str]]:
         """Check bar chart specific issues."""
-        assert config.x is not None
+        # ``config.x`` is guaranteed non-None by ``_analyze_xy_chart``.
+        x = cast(ColumnRef, config.x)
         issues = []
         suggestions = []
 
         if x_is_id:
             issues.append(
-                f"Bar chart with ID field '{config.x.name}' may create too many bars"
+                f"Bar chart with ID field '{x.name}' may create too many bars"
             )
             suggestions.extend(
                 [

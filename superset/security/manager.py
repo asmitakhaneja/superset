@@ -3892,7 +3892,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 datasource = viz.datasource
                 form_data = viz.form_data
 
-            assert datasource
+            if not datasource:
+                # Fail closed: a query_context/viz without a resolvable
+                # datasource must never fall through to the access checks below.
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                        message=_(
+                            "Could not resolve a datasource to check access against."
+                        ),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
 
             def has_promiscuous_chart_access() -> bool:
                 if not (

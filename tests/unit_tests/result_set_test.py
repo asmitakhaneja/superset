@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
@@ -315,6 +316,25 @@ def test_json_data_type_preserved_as_objects() -> None:
     assert parsed[0]["json_col"]["key"] == "value1"
     assert parsed[0]["json_col"]["nested"]["a"] == 1
     assert parsed[1]["json_col"]["items"] == [1, 2, 3]
+
+
+def test_to_pandas_df_missing_nested_column_raises() -> None:
+    """
+    A nested column key that no longer maps to a DataFrame column must raise a
+    ``ValueError`` instead of relying on a bare ``assert``. Under ``python -O``
+    the ``assert`` is stripped, so the restoration would be silently skipped
+    (or fail with a cryptic error) rather than surfacing the invariant break.
+    """
+    data = [(1, "text1")]
+    description = [
+        ("id", 23, None, None, None, None, None),  # INT
+        ("text_col", 1043, None, None, None, None, None),  # VARCHAR
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    # Simulate a stale/mismatched nested-column key that is absent from the df.
+    result_set._nested_columns = {"does_not_exist": [object()]}
+    with pytest.raises(ValueError, match="does_not_exist"):
+        result_set.to_pandas_df()
 
 
 def test_json_formatted_string_in_text_column_stays_string() -> None:
