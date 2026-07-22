@@ -121,6 +121,23 @@ Findings in third-party dependencies fall into two cases. A finding in a transit
 
 When uncertain whether a finding falls in scope, please file it through the reporting process above. The triage team will classify it and explain the reasoning if it is closed as out of scope.
 
+### Dependency-audit allowlist
+
+The [`dep-audit`](.github/workflows/dep-audit.yml) CI workflow runs `pip-audit` against the pinned Python requirements and `npm audit` against the frontend lockfile on every push and pull request. It fails the build on any advisory that is not explicitly triaged in [`.github/dep-audit-allowlist.yaml`](.github/dep-audit-allowlist.yaml). This complements `dependency-review.yml`, which only inspects dependencies changed by a PR and cannot carry a project-specific allowlist.
+
+An advisory may be added to the allowlist only when it fits one of the eligibility rows below. Every entry must record `id`, `package`, `reason`, `security-md-scope-row` (one of the row identifiers below), `owner`, and `review-by` (an ISO `YYYY-MM-DD` date). A stale `review-by` fails CI, forcing periodic re-triage. Adding, changing, or removing an entry is a normal, reviewable pull-request change; removing an entry re-surfaces the advisory as a CI failure.
+
+| `security-md-scope-row` | Eligible when the advisory… | Basis in the model above |
+|---|---|---|
+| `dev-tooling` | only affects build-, test-, or CI-time tooling that is not shipped in the runtime image or reachable by any principal | Not part of the product surface; developer/operator boundary |
+| `operator-boundary` | affects an operator-selected connector or component (e.g. an SSH or database driver) whose exposure is a deployment-time decision | Trust boundary #2 (the operator) |
+| `transitive-dependency` | is in a transitive dependency Apache Superset does not ship directly | Dependency-scope out-of-scope clause above |
+| `tracked-upgrade` | is in an in-scope direct dependency with no consumable fixed release yet, or whose upgrade is batched; the risk is accepted only until `review-by` | In scope, but time-boxed acceptance with mandatory expiry |
+
+The first three rows correspond to classes this document already treats as out of scope. The `tracked-upgrade` row is the single exception mechanism for in-scope advisories: it is a documented, expiring risk acceptance, not a permanent suppression, and its `review-by` date must be honored.
+
+When uncertain whether an advisory qualifies, leave it un-allowlisted (so CI keeps flagging it) and raise it with the maintainers rather than silencing it.
+
 **Outcome of Reports**
 
 Reports that are deemed out of scope for a CVE but represent valid security best practices or hardening opportunities are typically converted into public GitHub issues, where the community can contribute fixes alongside the maintainers. The triage decision and reasoning are communicated back to the reporter in either case.

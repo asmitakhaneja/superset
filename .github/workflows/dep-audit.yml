@@ -1,0 +1,113 @@
+# Dependency Audit
+#
+# Runs `pip-audit` (Python) and `npm audit` (frontend) against the pinned
+# dependencies and fails when a non-allowlisted advisory is found. Unlike
+# dependency-review.yml (which only inspects the PR diff against the GHSA
+# database and cannot be extended with a project-specific allowlist), this gate
+# scans the whole pinned set on every push/PR and lets advisories that are out
+# of scope per SECURITY.md — or temporarily accepted pending an upgrade — be
+# triaged in .github/dep-audit-allowlist.yaml.
+name: "Dependency Audit"
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  allowlist-schema:
+    name: "Validate allowlist schema"
+    runs-on: ubuntu-26.04
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Set up Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.11"
+      - name: "Install tooling"
+        run: pip install --upgrade "pyyaml==6.0.3" pytest
+      - name: "Validate allowlist"
+        run: python scripts/dependency_audit.py validate
+      - name: "Run allowlist tests"
+        # --noconftest keeps this lightweight: the allowlist tests do not need
+        # the full Superset app that tests/conftest.py would otherwise import.
+        run: pytest -q --noconftest tests/security/test_dep_audit_allowlist.py
+
+  pip-audit:
+    name: "pip-audit (Python)"
+    runs-on: ubuntu-26.04
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Set up Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.11"
+      - name: "Install build libraries"
+        # Needed so pip-audit can build sdist metadata for packages without
+        # wheels (mysqlclient, python-ldap) while resolving the pinned set.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmysqlclient-dev libldap2-dev libsasl2-dev pkg-config
+      - name: "Install pip-audit"
+        run: pip install --upgrade pip-audit "pyyaml==6.0.3"
+      - name: "Run pip-audit"
+        # pip-audit exits non-zero when advisories exist; the gate script below
+        # is the source of truth, so capture the report and continue.
+        run: |
+          pip-audit --no-deps --progress-spinner=off -f json \
+            -r requirements/base.txt -o pip-audit-base.json || true
+          pip-audit --no-deps --progress-spinner=off -f json \
+            -r requirements/development.txt -o pip-audit-development.json || true
+      - name: "Gate on non-allowlisted advisories"
+        run: |
+          python scripts/dependency_audit.py check \
+            --pip-audit-json pip-audit-base.json \
+            --pip-audit-json pip-audit-development.json
+
+  npm-audit:
+    name: "npm audit (frontend)"
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: superset-frontend
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Set up Node"
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: "./superset-frontend/.nvmrc"
+      - name: "Set up Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.11"
+      - name: "Install gate tooling"
+        run: pip install --upgrade "pyyaml==6.0.3"
+      - name: "Run npm audit"
+        # Uses the committed package-lock.json; no install needed. npm audit
+        # exits non-zero when advisories exist, so capture and continue.
+        run: npm audit --json > npm-audit.json || true
+      - name: "Gate on non-allowlisted advisories"
+        working-directory: .
+        run: |
+          python scripts/dependency_audit.py check \
+            --npm-audit-json superset-frontend/npm-audit.json \
+            --npm-fail-severity critical
