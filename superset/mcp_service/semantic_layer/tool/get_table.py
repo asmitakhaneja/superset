@@ -24,7 +24,7 @@ metric and dimension names, returning tabular results.
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -83,8 +83,9 @@ def _resolve_builtin_dataset(
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.dataset import DatasetDAO
 
-    dataset_id = request.dataset_id
-    assert dataset_id is not None
+    # ``dataset_id`` is guaranteed set by the datasource-selection validation in
+    # the caller; narrow the Optional for mypy without relying on ``assert``.
+    dataset_id = cast(int, request.dataset_id)
 
     with event_logger.log_context(action="mcp.get_table.resolve_dataset"):
         dataset = DatasetDAO.find_by_id(
@@ -132,8 +133,9 @@ def _resolve_external_view(
     from superset.daos.semantic_layer import SemanticViewDAO
     from superset.exceptions import SupersetSecurityException
 
-    view_id = request.view_id
-    assert view_id is not None
+    # ``view_id`` is guaranteed set by the datasource-selection validation in the
+    # caller; narrow the Optional for mypy without relying on ``assert``.
+    view_id = cast(int, request.view_id)
 
     with event_logger.log_context(action="mcp.get_table.resolve_view"):
         view = SemanticViewDAO.find_by_id(view_id)
@@ -478,11 +480,9 @@ async def get_table(
     is_builtin = request.dataset_id is not None
     datasource_type = "table" if is_builtin else "semantic_view"
     if is_builtin:
-        assert request.dataset_id is not None
-        datasource_id = request.dataset_id
+        datasource_id = cast(int, request.dataset_id)
     else:
-        assert request.view_id is not None
-        datasource_id = request.view_id
+        datasource_id = cast(int, request.view_id)
 
     try:
         return await _run_get_table_query(

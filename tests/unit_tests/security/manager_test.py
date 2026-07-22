@@ -139,6 +139,30 @@ def test_raise_for_access_guest_user_ok_subset(
     sm.raise_for_access(query_context=query_context)
 
 
+def test_raise_for_access_query_context_without_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that a query_context whose datasource cannot be resolved fails closed.
+
+    The datasource invariant used to be enforced with a bare ``assert``, which
+    is stripped under ``python -O``. In that case ``None`` would fall through to
+    the access checks below and raise a cryptic ``AttributeError`` instead of a
+    domain-specific security exception. It must always raise
+    ``SupersetSecurityException``.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+
+    query_context = mocker.MagicMock()
+    query_context.datasource = None
+    query_context.form_data = {}
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
 def test_raise_for_access_guest_user_tampered_id(
     mocker: MockerFixture,
     app_context: None,

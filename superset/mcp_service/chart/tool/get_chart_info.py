@@ -20,7 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -308,8 +308,8 @@ async def get_chart_info(
 
     # At this point identifier must be set (validator ensures at least one
     # of identifier/form_data_key is provided, and the form_data_key-only
-    # branch returned above).
-    assert request.identifier is not None
+    # branch returned above); narrow the Optional for mypy without ``assert``.
+    identifier = cast("int | str", request.identifier)
 
     # Eager load editors and tags to avoid N+1 queries during serialization
     eager_options = [
@@ -329,7 +329,7 @@ async def get_chart_info(
             logger=logger,
             query_options=eager_options,
         )
-        result = tool.run_tool(request.identifier)
+        result = tool.run_tool(identifier)
 
     if isinstance(result, ChartInfo):
         # If form_data_key is provided, override form_data with cached version
