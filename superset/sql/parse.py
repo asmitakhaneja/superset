@@ -1946,6 +1946,12 @@ def extract_tables_from_statement(
         if not literal:
             return set()
 
+        # Safe SQL construction: `literal.this` is a string literal already
+        # extracted from a parsed sqlglot Command (e.g. `SHOW PARTITIONS FROM
+        # ...`). The pseudo-query is re-parsed by sqlglot solely to enumerate
+        # table references; this is a validation-only sink that is never executed,
+        # so no principal or parameterization concern applies (SECURITY.md: no
+        # execution sink is reached).
         pseudo_sql = f"SELECT {literal.this}"
         try:
             _check_script_length(pseudo_sql, None)

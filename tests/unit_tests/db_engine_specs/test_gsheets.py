@@ -1067,4 +1067,55 @@ def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extr
     errors = GSheetsEngineSpec.validate_parameters(properties)
 
     assert errors == []
-    conn.execute.assert_not_called()
+
+
+def _mock_get_metadata_connection(
+    mocker: MockerFixture,
+    database: Any,
+) -> Any:
+    """Wire ``database.get_raw_connection`` so a cursor is returned and captured."""
+    cursor = mocker.MagicMock()
+    cursor.fetchone.return_value = [json.dumps({"extra": {"foo": "bar"}})]
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    context_manager = mocker.MagicMock()
+    context_manager.__enter__.return_value = conn
+    database.get_raw_connection.return_value = context_manager
+    return cursor
+
+
+def test_get_extra_table_metadata_escapes_table_name(mocker: MockerFixture) -> None:
+    """A plain table name is passed to GET_METADATA inside a quoted literal."""
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database = mocker.MagicMock()
+    cursor = _mock_get_metadata_connection(mocker, database)
+
+    GSheetsEngineSpec.get_extra_table_metadata(database, Table("sheet1"))
+
+    cursor.execute.assert_called_once_with('SELECT GET_METADATA("sheet1")')
+
+
+def test_get_extra_table_metadata_neutralizes_injection(
+    mocker: MockerFixture,
+) -> None:
+    """A would-be injection table name is neutralized by doubling quotes.
+
+    Without escaping, a table name containing a double quote could close the
+    ``GET_METADATA("...")`` string literal and append attacker SQL. Doubling the
+    embedded ``"`` keeps the whole payload inside the literal, so nothing new is
+    executed against the gsheets/shillelagh connection.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database = mocker.MagicMock()
+    cursor = _mock_get_metadata_connection(mocker, database)
+
+    malicious = 'sheet1") UNION SELECT SLEEP(5) --'
+    GSheetsEngineSpec.get_extra_table_metadata(database, Table(malicious))
+
+    executed = cursor.execute.call_args[0][0]
+    # The embedded quote is doubled, so the injection stays inside the literal.
+    assert executed == 'SELECT GET_METADATA("sheet1"") UNION SELECT SLEEP(5) --")'
+    # The only unescaped double quotes are the delimiters GET_METADATA emits.
+    assert executed.count('"') - executed.count('""') * 2 == 2

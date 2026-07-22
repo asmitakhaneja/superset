@@ -269,6 +269,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             schema=table.schema,
         ) as conn:
             cursor = conn.cursor()
+            # Safe SQL construction (SECURITY.md "Gamma/Alpha/Admin -> Read data on
+            # granted datasets"): `table.table` is a caller-supplied table name
+            # from the table-metadata API, reachable only after
+            # security_manager.raise_for_access grants the database/table.
+            # GET_METADATA takes a double-quoted string, and doubling embedded `"`
+            # -- the only metacharacter in a SQLite/shillelagh quoted literal --
+            # keeps any payload inside the literal, neutralizing injection at this
+            # execution sink.
             escaped_table = table.table.replace('"', '""')
             cursor.execute(f'SELECT GET_METADATA("{escaped_table}")')
             results = cursor.fetchone()[0]

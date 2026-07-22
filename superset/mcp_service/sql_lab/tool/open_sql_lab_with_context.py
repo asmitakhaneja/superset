@@ -150,6 +150,13 @@ def open_sql_lab_with_context(
                 else:
                     table_reference = request.dataset_in_context
 
+                # Safe SQL construction (SECURITY.md "sql_lab -> Execute SQL"; the
+                # tool is gated by class_permission_name="SQLLab"):
+                # `table_reference` is a caller-supplied dataset/schema name, but
+                # the constructed SELECT is only pre-filled into the SQL Lab editor
+                # URL (params["sql"]) for the user to run themselves. It is never
+                # executed by this tool, so it grants nothing beyond the SQL Lab
+                # editor access the principal already holds.
                 context_comment += f"\nSELECT * FROM {table_reference} LIMIT 100;"
                 params["sql"] = context_comment
 

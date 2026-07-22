@@ -335,8 +335,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :param cancel_query_id: Snowflake Session ID
         :return: True if query cancelled successfully, False otherwise
         """
-        # Validate cancel_query_id to prevent SQL injection
-        # Snowflake CURRENT_SESSION() returns an alphanumeric VARCHAR session ID
+        # Safe SQL construction (SECURITY.md "sql_lab -> Execute SQL"): query
+        # cancellation is available to the sql_lab principal that owns the running
+        # query. `cancel_query_id` originates from get_cancel_query_id ->
+        # `SELECT CURRENT_SESSION()` (a trusted Snowflake source, alphanumeric
+        # VARCHAR session id) and is bounded here to `^[a-zA-Z0-9]+$` before
+        # interpolation, so a would-be injection payload is rejected rather than
+        # reaching cursor.execute().
         if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9]+$"):
             return False
 

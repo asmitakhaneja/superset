@@ -892,6 +892,11 @@ def validate_stored_expression(
     skeleton = _JINJA_BLOCK_RE.sub(" NULL ", expression)
     contains_jinja = skeleton != expression
     engine = database.backend
+    # Safe SQL construction (SECURITY.md "Alpha/Admin -> Write objects"):
+    # `skeleton` is a Jinja-stripped copy of a column/metric expression authored
+    # by a dataset owner. It is fed to the SQLStatement parser purely to validate
+    # shape (single, non-set-operation statement); this is a validation-only sink
+    # that never reaches the analytical database, so no parameterization applies.
     wrapped = f"SELECT {skeleton}"
 
     try:
