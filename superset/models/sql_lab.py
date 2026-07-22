@@ -551,7 +551,11 @@ class SavedQuery(
 
     @property
     def pop_tab_link(self) -> Markup:
-        return Markup(
+        # Interpolates only the integer primary key `self.id`; no principal in
+        # the SECURITY.md matrix can inject markup through it, so this FAB
+        # list-view anchor is safe to Markup-wrap and the SECURITY.md XSS row
+        # is not reachable.
+        return Markup(  # noqa: S704
             f"""
             <a href="/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>

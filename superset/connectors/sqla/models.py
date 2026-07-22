@@ -1481,6 +1481,11 @@ class SqlaTable(
 
     @property
     def link(self) -> Markup:
+        # `name` (schema.table_name) and `explore_url` derive from dataset
+        # fields an Alpha/Admin owner can set (SECURITY.md "Write objects"
+        # row). Both are escape()'d before interpolation, so the anchor carries
+        # no unescaped user markup into the FAB list-view sink and the
+        # SECURITY.md XSS row is not reachable.
         name = escape(self.name)
         url = escape(self.explore_url)
         anchor = f'<a target="_blank" href="{url}">{name}</a>'

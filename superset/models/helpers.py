@@ -729,6 +729,11 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
+        # `changed_on` is a server-managed audit timestamp (SQLAlchemy
+        # onupdate), a datetime no principal in the SECURITY.md role/capability
+        # matrix can set to arbitrary text. No writable source reaches this
+        # FAB list-view render, so the SECURITY.md XSS row is not reachable and
+        # Markup-wrapping is safe.
         return Markup(f'<span class="no-wrap">{self.changed_on}</span>')  # noqa: S704
 
     @renders("changed_on")
@@ -773,6 +778,10 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def modified(self) -> Markup:
+        # `changed_on_humanized` derives from the server-managed `changed_on`
+        # audit timestamp; no principal in the SECURITY.md matrix can inject
+        # markup into it, so the SECURITY.md XSS row is not reachable and
+        # Markup-wrapping the FAB list-view value is safe.
         return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
 
 

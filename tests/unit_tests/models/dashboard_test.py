@@ -47,6 +47,28 @@ def test_dashboard_link_escapes_slug(app_context: None) -> None:
     assert "My Dashboard" in link
 
 
+def test_dashboard_link_escapes_title(app_context: None) -> None:
+    """dashboard_link must HTML-escape the owner-controlled dashboard title.
+
+    `dashboard_title` is editable by any Gamma/Alpha owner (SECURITY.md "Write
+    objects" row) and `dashboard_link` is rendered as raw HTML in the FAB list
+    view, so a title carrying markup must be escaped rather than interpolated
+    live (SECURITY.md XSS row).
+    """
+    dash = Dashboard()
+    dash.id = 1
+    dash.dashboard_title = "<img src=x onerror=alert(1)>"
+    dash.slug = "sales"
+
+    with current_app.test_request_context("/"):
+        link = str(dash.dashboard_link())
+
+    # The injected tag's angle brackets are escaped, so it renders as inert
+    # text rather than a live element.
+    assert "<img" not in link
+    assert "&lt;img src=x onerror=alert(1)&gt;" in link
+
+
 def test_dashboard_link_renders_plain_slug(app_context: None) -> None:
     """A normal slug renders a working link under a subdirectory deployment.
 

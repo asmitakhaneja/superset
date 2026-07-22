@@ -125,6 +125,29 @@ class TestSlice:
         result = slc.datasource_url()
         assert result is None
 
+    def test_slice_link_escapes_slice_name(self):
+        """slice_link must HTML-escape the owner-controlled slice name.
+
+        `slice_name` is editable by any Gamma/Alpha owner (SECURITY.md "Write
+        objects" row) and `slice_link` is rendered as raw HTML in the FAB list
+        view, so a name carrying markup must be escaped rather than interpolated
+        live (SECURITY.md XSS row). `href` interpolates only the integer
+        `slice_id`, so it carries no user text.
+        """
+        slc = Slice()
+        slc.id = 1
+        slc.slice_name = "<img src=x onerror=alert(1)>"
+
+        with current_app.test_request_context("/"):
+            link = str(slc.slice_link)
+
+        # The injected tag's angle brackets are escaped, so it renders as
+        # inert text rather than a live element.
+        assert "<img" not in link
+        assert "&lt;img src=x onerror=alert(1)&gt;" in link
+        # The legitimate anchor markup is still present.
+        assert link.startswith("<a href=")
+
     def test_icons_escapes_datasource_html(self):
         """icons must HTML-escape the datasource name and edit URL."""
         slc = Slice()
