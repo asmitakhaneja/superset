@@ -63,7 +63,7 @@ def test_validate_raises_when_database_not_found(
     mock_security_manager: MagicMock,
 ) -> None:
     """404 is raised before the access check when the database does not exist."""
-    mock_db.session.query.return_value.get.return_value = None
+    mock_db.session.get.return_value = None
 
     command = QueryEstimationCommand(_make_params())
     with pytest.raises(SupersetErrorException) as exc_info:
@@ -86,7 +86,7 @@ def test_validate_raises_when_database_access_denied(
 ) -> None:
     """SupersetSecurityException propagates when raise_for_access denies access."""
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
     command = QueryEstimationCommand(_make_params())
@@ -111,7 +111,7 @@ def test_validate_succeeds_for_authorised_user(
 ) -> None:
     """validate() completes without error when access is granted."""
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
 
     command = QueryEstimationCommand(_make_params())
@@ -136,7 +136,7 @@ def test_raise_for_access_called_with_correct_database(
     """The database object fetched from the session is passed to raise_for_access."""
     mock_database = MagicMock()
     mock_database.id = 42
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
 
     command = QueryEstimationCommand(_make_params(database_id=42))
@@ -144,6 +144,32 @@ def test_raise_for_access_called_with_correct_database(
 
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_database
+
+
+# ---------------------------------------------------------------------------
+# SQLAlchemy 2.0 migration: primary-key lookup uses Session.get (see #10)
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_validate_uses_session_get_not_legacy_query_get(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+) -> None:
+    """The database is loaded via the SQLAlchemy 2.0-style ``Session.get`` rather
+    than the legacy ``Query.get`` (which emits ``RemovedIn20Warning``)."""
+    from superset.models.core import Database
+
+    mock_database = MagicMock()
+    mock_db.session.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+
+    command = QueryEstimationCommand(_make_params(database_id=7))
+    command.validate()
+
+    mock_db.session.get.assert_called_once_with(Database, 7)
+    mock_db.session.query.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
