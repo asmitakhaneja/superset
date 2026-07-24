@@ -302,7 +302,6 @@ module = [
     "superset.security.manager",
     "superset.daos.base",
     "superset.connectors.sqla.models",
-    "superset.tags.filters",
     "superset.commands.security.update",
     "superset.commands.security.create",
     "superset.semantic_layers.api",
