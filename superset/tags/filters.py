@@ -16,10 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db, security_manager
@@ -94,7 +95,8 @@ class BaseTagNameFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(self.model.tags)
             .filter(Tag.name.ilike(ilike_value))
         )
-        return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]
+        model_id = cast(ColumnElement[int], self.model.id)
+        return query.filter(model_id.in_(tags_query))
 
 
 class BaseTagIdFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -116,4 +118,5 @@ class BaseTagIdFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(self.model.tags)
             .filter(Tag.id == value)
         )
-        return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]
+        model_id = cast(ColumnElement[int], self.model.id)
+        return query.filter(model_id.in_(tags_query))
